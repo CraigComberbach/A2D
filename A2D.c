@@ -66,7 +66,7 @@ void Initialize_A2D(void)
 
 		//A/D Control Register 3
 //		AD1CON3bits.ADCS	= Using internal RC clock, not main clock
-		AD1CON3bits.SAMC	= 13;//01101 = 13 TAD
+		AD1CON3bits.SAMC	= 13;//01101 = 13 TAD(TAD is the clock period)
 		AD1CON3bits.PUMPEN	= 0;//0 = Charge pump for switches is disabled
 		AD1CON3bits.EXTSAM	= 0;//0 = A/D is finished sampling
 		AD1CON3bits.ADRC	= 1;//1 = A/D internal RC clock
@@ -86,6 +86,7 @@ void Initialize_A2D(void)
 		AD1CON1bits.FORM	= 0;//00 = Integer (0000 00dd dddd dddd)
 		AD1CON1bits.ADSIDL	= 0;//0 = Continue module operation in Idle mode
 		AD1CON1bits.ADON	= 1;//1 = A/D Converter module is operating
+
 	#endif
 
 	return;
@@ -93,5 +94,18 @@ void Initialize_A2D(void)
 
 void A2D_Routine(void)
 {
-	return;
+	int A2DValue;
+
+	while (1)
+	{
+		while (!IFS0bits.AD1IF) //wait for conversion to be done
+		{};
+		A2DValue = ADC1BUF0;// conversion is complete get ADC value from buffer
+		IFS0bits.AD1IF=0;//clear AD1IF
+	}
+
+	
+
+
+	//return;
 }
