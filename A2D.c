@@ -94,16 +94,26 @@ void Initialize_A2D(void)
 
 void A2D_Routine(void)
 {
-	int A2DValue;
+	int A2DValue,samplecount;
+	int *ADCPtr;
 
 	while (1)
 	{
-		while (!IFS0bits.AD1IF) //wait for conversion to be done
-		{};
-		A2DValue = ADC1BUF0;// conversion is complete get ADC value from buffer
-		IFS0bits.AD1IF=0;//clear AD1IF
-	}
+		A2DValue=0;		   // clear the A2Dvalue
+		ADCPtr=&ADC1BUF0;  //intialize the ADC1Buf
+		IFS0bits.AD1IF = 0;	//cleat the ADC interupt flag
+							//auto start sampling set up in Initialize_A2D
+		while (!IFS0bits.AD1IF);//wait for conversion to be done
 
+		AD1CON1bits.ASAM= 0;
+		for (samplecount=0;samplecount < 16; samplecount++)
+		{
+			A2DValue = A2DValue + *ADCPtr++;
+		}
+		A2DValue = A2DValue >> 4;
+}
+//		A2DValue = ADC1BUF0;// conversion is complete get ADC value from buffer
+//		IFS0bits.AD1IF=0;//clear AD1IF
 	
 
 
