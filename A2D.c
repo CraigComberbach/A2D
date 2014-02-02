@@ -16,11 +16,11 @@ v0.0.0	2013-07-18  Craig Comberbach
 
 /************* Semantic Versioning***************/
 #if A2D_MAJOR != 0
-	#warning "A2D.c has had a change that loses some previously supported functionality"
+	#error "A2D.c has had a change that loses some previously supported functionality"
 #elif A2D_MINOR != 1
-	#warning "A2D.c has new features that this code may benefit from"
+	#error "A2D.c has new features that this code may benefit from"
 #elif A2D_PATCH != 0
-	#warning "A2D.c has had a bug fix, you should check to see that we weren't relying on a bug for functionality"
+	#error "A2D.c has had a bug fix, you should check to see that we weren't relying on a bug for functionality"
 #endif
 
 /************Arbitrary Functionality*************/
@@ -93,7 +93,7 @@ void Initialize_A2D(void)
 void A2D_Routine(void)
 {
 	int A2DValue,samplecount;
-	int *ADCPtr;
+	volatile unsigned int *ADCPtr;
 
 	while (1)
 	{
