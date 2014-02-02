@@ -15,9 +15,7 @@ v0.0.0	2013-07-18  Craig Comberbach
 #include "A2D.h"
 
 /************* Semantic Versioning***************/
-#ifndef A2D_LIBRARY
-	#error "You need to include the A2D library for this code to compile"
-#elif A2D_MAJOR != 0
+#if A2D_MAJOR != 0
 	#warning "A2D.c has had a change that loses some previously supported functionality"
 #elif A2D_MINOR != 1
 	#warning "A2D.c has new features that this code may benefit from"
