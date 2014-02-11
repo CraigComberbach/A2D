@@ -29,6 +29,8 @@ v0.0.0	2013-07-18  Craig Comberbach
 /***********State Machine Definitions*************/
 /*************  Global Variables  ***************/
 /*************Function  Prototypes***************/
+int bee_boop(void);
+
 /************* Device Definitions ***************/
 /************* Module Definitions ***************/
 /************* Other  Definitions ***************/
@@ -71,7 +73,7 @@ void Initialize_A2D(void)
 
 		//A/D Control Register 2
 		AD1CON2bits.ALTS	= 0;//0 = Always uses MUX A input multiplexer settings
-		AD1CON2bits.SMPI	= 15;//1111= Interrupts at the completion of conversion for each 16th sample/convert sequence
+		AD1CON2bits.SMPI	= 0;//1= Interrupts at the completion of conversion for each 2nd sample/convert sequence
 		AD1CON2bits.CSCNA	= 1;//1 = Scan inputs
 		AD1CON2bits.OFFCAL	= 0;//0 = Conversions to get the actual input value
 		AD1CON2bits.VCFG	= 0;//00 = Vr+ = AVdd, VR- = AVss
@@ -84,7 +86,7 @@ void Initialize_A2D(void)
 		AD1CON1bits.FORM	= 0;//00 = Integer (0000 00dd dddd dddd)
 		AD1CON1bits.ADSIDL	= 0;//0 = Continue module operation in Idle mode
 		AD1CON1bits.ADON	= 1;//1 = A/D Converter module is operating
-
+bee_boop();
 	#endif
 
 	return;
@@ -92,28 +94,33 @@ void Initialize_A2D(void)
 
 void A2D_Routine(void)
 {
-	int A2DValue,samplecount;
-	volatile unsigned int *ADCPtr;
+	int A2DValue[2];
 
-	while (1)
-	{
-		A2DValue=0;		   // clear the A2Dvalue
-		ADCPtr=&ADC1BUF0;  //intialize the ADC1Buf
-		IFS0bits.AD1IF = 0;	//cleat the ADC interupt flag
-							//auto start sampling set up in Initialize_A2D
-		while (!IFS0bits.AD1IF);//wait for conversion to be done
+	AD1CON1bits.ASAM = 1;
+	while(!IFS0bits.AD1IF);//wait for conversion to be done
+	IFS0bits.AD1IF = 0;
+	AD1CON1bits.ASAM = 0;
 
-		AD1CON1bits.ASAM= 0;
-		for (samplecount=0;samplecount < 16; samplecount++)
-		{
-			A2DValue = A2DValue + *ADCPtr++;
-		}
-		A2DValue = A2DValue >> 4;
+	A2DValue[0] = ADC1BUF0;
+	A2DValue[1] = ADC1BUF1;
+
+	Nop();
+	Nop();
+	Nop();
+
+	return;
 }
-//		A2DValue = ADC1BUF0;// conversion is complete get ADC value from buffer
-//		IFS0bits.AD1IF=0;//clear AD1IF
-	
 
+int bee_boop(void)
+{
+	ANSAbits.ANSA0 = 0;
+	ANSAbits.ANSA1 = 0;
+	ANSAbits.ANSA2 = 1;
+	ANSAbits.ANSA3 = 1;
 
-	//return;
+	ANSBbits.ANSB4 = 0;
+	ANSBbits.ANSB14 = 0;
+	ANSBbits.ANSB15 = 0;
+
+	return 1;
 }
