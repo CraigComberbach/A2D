@@ -57,8 +57,8 @@ enum A2D_PIN_DEFINITIONS
 };
 
 //A2D Library
-#define A2D_MAJOR	0
-#define A2D_MINOR	1
+#define A2D_MAJOR	1
+#define A2D_MINOR	0
 #define A2D_PATCH	0
 */
 

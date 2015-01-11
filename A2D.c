@@ -4,6 +4,11 @@ Chip resources used:	A2D Module & Pins setup as analog inputs
 Purpose:				Scan A2D, perform DSP to increase resolution, and format accordingly
 
 Version History:
+v1.0.0	2015-01-10  Craig Comberbach
+	Compiler: XC16 v1.11	IDE: MPLABx 2.20	Tool: ICD3	Computer: Intel Core2 Quad CPU 2.40 GHz, 5 GB RAM, Windows 7 64 bit Home Premium SP1
+	Added full scanning functionality
+	Added format/pre/post/finished function pointers to extend capabilities to encompass non-generic situations
+	Added DSP based resolution increasing capabilities (As much as 16-bit can be obtained from the 10-bit A2D module)
 v0.0.0	2013-07-18  Craig Comberbach
 	Compiler: C30 v3.31	IDE: MPLABx 1.80	Tool: RealICE	Computer: Intel Xeon CPU 3.07 GHz, 6 GB RAM, Windows 7 64 bit Professional SP1
 	First version
@@ -13,9 +18,9 @@ v0.0.0	2013-07-18  Craig Comberbach
 #include "A2D.h"
 
 /************* Semantic Versioning***************/
-#if A2D_MAJOR != 0
+#if A2D_MAJOR != 1
 	#error "A2D.c has had a change that loses some previously supported functionality"
-#elif A2D_MINOR != 1
+#elif A2D_MINOR != 0
 	#error "A2D.c has new features that this code may benefit from"
 #elif A2D_PATCH != 0
 	#error "A2D.c has had a bug fix, you should check to see that we weren't relying on a bug for functionality"
