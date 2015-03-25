@@ -102,7 +102,7 @@ void A2D_Initialize(void);
  * @param channel The A2D channel that is to be scanned, these are enumerated in the controller config file
  * @param desiredResolution The desired additional bits of resolution (between 0(10-bit) and 6(16-bit)), you can use enum RESOLUTION in this header file to simplify
  * @param numberOfAverages The number of desired "readings" to be averaged (This can be different than the number of samples taken if additional resolution is selected). This number must be 16 or greater, must not be 65536 or bigger and must be a multiple of 16.
- * @param formatPointer Function pointer that will format the raw A2D values, the function must accept an integer indicating A2D channel, it should also return the formatted value as an integer
+ * @param formatPointer Function pointer that will format the raw A2D values, the function must accept an integer representing the raw A2D value, it should also return the formatted value as an integer
  * @param preFunction Function pointer that will run just as the channel is starting to be scanned (eg switched pin turning on), the function must accept an integer indicating A2D channel, it should not return a value
  * @param postFunction Function pointer that will run just as the channel is finished being scanned (eg switched pin turning off), the function must accept an integer indicating A2D channel, it should not return a value
  * @param finishedFunction Function pointer that will run when the sampling/averaging is completed and a new value is ready (eg functions that need to run as soon as a sample is ready), the function must accept an integer indicating A2D channel, it should not return a value

@@ -28,7 +28,7 @@ v0.0.0	2013-07-18  Craig Comberbach
 
 /************Arbitrary Functionality*************/
 /*************   Magic  Numbers   ***************/
-#define	NUMBER_OF_CHANNELS 16
+#define	NUMBER_OF_CHANNELS	16
 #define SCAN_BUFFER_SIZE	16	//Size of the scan buffer
 
 /*************    Enumeration     ***************/
@@ -68,7 +68,7 @@ void __attribute__((__interrupt__, auto_psv)) _ADC1Interrupt(void);
 
 void A2D_Routine(void)
 {
-	int channel;
+	int buffer;
 
 	if(scanIsComplete)
 	{
@@ -76,8 +76,8 @@ void A2D_Routine(void)
 		scanIsComplete = 0;
 
 		//Add all of the samples into the raw variable
-		for(channel = 0; channel < NUMBER_OF_CHANNELS; channel++)
-			A2D_Channel[scanningQueue[currentQueueElement]].sumOfSamples += *(&ADC1BUF0 + channel);
+		for(buffer = 0; buffer < NUMBER_OF_CHANNELS; buffer++)
+			A2D_Channel[scanningQueue[currentQueueElement]].sumOfSamples += *(&ADC1BUF0 + buffer);
 
 		//Increment the number of samples read in (we just took 16 samples in a burst, hence the +16)
 		A2D_Channel[scanningQueue[currentQueueElement]].samplesTaken += SCAN_BUFFER_SIZE;
