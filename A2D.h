@@ -130,6 +130,7 @@ void A2D_Initialize(void);
  */
 int A2D_Channel_Settings(int channel, enum RESOLUTION desiredResolutionIncrease, int numberOfAverages, int (*formatPointer)(int), void (*preFunction)(int), void (*postFunction)(int), void (*finishedFunction)(int));
 
+int A2D_Advanced_Channel_Settings(int channel, enum RESOLUTION desiredResolutionIncrease, int numberOfAverages, int (*formatPointer)(int), void (*preFunction)(int), void (*postFunction)(int), void (*finishedFunction)(int), int (*averagingStylePointer)(int, volatile unsigned int *, int), enum A2D_SAMPLE_SIZE sampleSize);
 
 /**
  * Adds the channel to the scanning queue

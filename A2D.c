@@ -55,6 +55,7 @@ struct A2D_Channel_Attributes
 	void (*preFunction)(int);				//Used to specify a function that activates when a channel starts being scanned (eg for setting a switched pin)
 	void (*postFunction)(int);				//Used to specify a function that activates when a channel stops being scanned (eg for resetting a switched pin)
 	void (*finishedFunction)(int);			//Used to specify a function that activates when a channel finishes being scanned and a new value is created (eg For setting flags for functions that need to run as soon as a value is determined)
+	int (*averagingStylePointer)(int, volatile unsigned int *, int);	//Allows individual inspection of samples before they get summed
 	enum A2D_SAMPLE_SIZE sampleSize;				//Used to indicate how many samples should be taken with each pass
 	unsigned long sumOfSamples;				//Sum of all the A2D samples before it undergoes DSP/Averaging
 } A2D_Channel[NUMBER_OF_CHANNELS];
@@ -314,6 +315,7 @@ int A2D_Add_To_Scan_Queue(int channel)
 	return 1;
 }
 
+int A2D_Advanced_Channel_Settings(int channel, enum RESOLUTION desiredResolutionIncrease, int numberOfAverages, int (*formatPointer)(int), void (*preFunction)(int), void (*postFunction)(int), void (*finishedFunction)(int), int (*averagingStylePointer)(int, volatile unsigned int *, int), enum A2D_SAMPLE_SIZE sampleSize)
 {
 	//Get the normal setting taken care of first
 	if(A2D_Channel_Settings(channel, desiredResolutionIncrease, numberOfAverages, formatPointer, preFunction, postFunction, finishedFunction) == 0)
