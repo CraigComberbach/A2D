@@ -55,7 +55,6 @@ struct A2D_Channel_Attributes
 	void (*preFunction)(int);				//Used to specify a function that activates when a channel starts being scanned (eg for setting a switched pin)
 	void (*postFunction)(int);				//Used to specify a function that activates when a channel stops being scanned (eg for resetting a switched pin)
 	void (*finishedFunction)(int);			//Used to specify a function that activates when a channel finishes being scanned and a new value is created (eg For setting flags for functions that need to run as soon as a value is determined)
-	int (*averagingStylePointer)(int, int, int);	//Allows individual inspection of samples before they get summed
 	enum A2D_SAMPLE_SIZE sampleSize;				//Used to indicate how many samples should be taken with each pass
 	unsigned long sumOfSamples;				//Sum of all the A2D samples before it undergoes DSP/Averaging
 } A2D_Channel[NUMBER_OF_CHANNELS];
@@ -78,8 +77,15 @@ void A2D_Routine(void)
 		scanIsComplete = 0;
 
 		//Add all n of the samples into the raw variable
-		for(buffer = 0; buffer < (A2D_Channel[scanningQueue[currentQueueElement]].sampleSize+1); buffer++)
-			A2D_Channel[scanningQueue[currentQueueElement]].sumOfSamples += *(&ADC1BUF0 + buffer);
+		if(*A2D_Channel[scanningQueue[currentQueueElement]].averagingStylePointer == NORMAL_AVERAGING)
+		{
+			for(buffer = 0; buffer < (A2D_Channel[scanningQueue[currentQueueElement]].sampleSize+1); buffer++)
+				A2D_Channel[scanningQueue[currentQueueElement]].sumOfSamples += *(&ADC1BUF0 + buffer);
+		}
+		else //Or let an external function take care of it
+		{
+			A2D_Channel[scanningQueue[currentQueueElement]].sumOfSamples += A2D_Channel[scanningQueue[currentQueueElement]].averagingStylePointer(scanningQueue[currentQueueElement], &ADC1BUF0, A2D_Channel[scanningQueue[currentQueueElement]].sampleSize);
+		}
 
 		//Increment the number of samples read in (we just took in n samples in a burst, hence the sampleSize variable)
 		A2D_Channel[scanningQueue[currentQueueElement]].samplesTaken += (A2D_Channel[scanningQueue[currentQueueElement]].sampleSize+1);
@@ -308,7 +314,6 @@ int A2D_Add_To_Scan_Queue(int channel)
 	return 1;
 }
 
-int A2D_Advanced_Channel_Settings(int channel, enum RESOLUTION desiredResolutionIncrease, int numberOfAverages, int (*formatPointer)(int), void (*preFunction)(int), void (*postFunction)(int), void (*finishedFunction)(int), int (*averagingStylePointer)(int, int, int), enum A2D_SAMPLE_SIZE sampleSize)
 {
 	//Get the normal setting taken care of first
 	if(A2D_Channel_Settings(channel, desiredResolutionIncrease, numberOfAverages, formatPointer, preFunction, postFunction, finishedFunction) == 0)
