@@ -20,7 +20,7 @@ v0.0.0	2013-07-18  Craig Comberbach
 /************* Semantic Versioning***************/
 #if A2D_MAJOR != 1
 	#error "A2D.c has had a change that loses some previously supported functionality"
-#elif A2D_MINOR != 0
+#elif A2D_MINOR != 1
 	#error "A2D.c has new features that this code may benefit from"
 #elif A2D_PATCH != 0
 	#error "A2D.c has had a bug fix, you should check to see that we weren't relying on a bug for functionality"
@@ -55,6 +55,8 @@ struct A2D_Channel_Attributes
 	void (*preFunction)(int);				//Used to specify a function that activates when a channel starts being scanned (eg for setting a switched pin)
 	void (*postFunction)(int);				//Used to specify a function that activates when a channel stops being scanned (eg for resetting a switched pin)
 	void (*finishedFunction)(int);			//Used to specify a function that activates when a channel finishes being scanned and a new value is created (eg For setting flags for functions that need to run as soon as a value is determined)
+	int (*averagingStylePointer)(int, int, int);	//Allows individual inspection of samples before they get summed
+	enum A2D_SAMPLE_SIZE sampleSize;				//Used to indicate how many samples should be taken with each pass
 	unsigned long sumOfSamples;				//Sum of all the A2D samples before it undergoes DSP/Averaging
 } A2D_Channel[NUMBER_OF_CHANNELS];
 
@@ -75,12 +77,12 @@ void A2D_Routine(void)
 		//Reset for next time
 		scanIsComplete = 0;
 
-		//Add all of the samples into the raw variable
-		for(buffer = 0; buffer < NUMBER_OF_CHANNELS; buffer++)
+		//Add all n of the samples into the raw variable
+		for(buffer = 0; buffer < (A2D_Channel[scanningQueue[currentQueueElement]].sampleSize+1); buffer++)
 			A2D_Channel[scanningQueue[currentQueueElement]].sumOfSamples += *(&ADC1BUF0 + buffer);
 
-		//Increment the number of samples read in (we just took 16 samples in a burst, hence the +16)
-		A2D_Channel[scanningQueue[currentQueueElement]].samplesTaken += SCAN_BUFFER_SIZE;
+		//Increment the number of samples read in (we just took in n samples in a burst, hence the sampleSize variable)
+		A2D_Channel[scanningQueue[currentQueueElement]].samplesTaken += (A2D_Channel[scanningQueue[currentQueueElement]].sampleSize+1);
 
 		//Check if we are ready for DSP/averaging
 		if(A2D_Channel[scanningQueue[currentQueueElement]].samplesTaken >= A2D_Channel[scanningQueue[currentQueueElement]].samplesRequired)
@@ -112,6 +114,11 @@ void A2D_Routine(void)
 		//Add the next channel to the scan
 		Add_To_Scan(scanningQueue[currentQueueElement]);
 	}
+
+	//If nessecary, set the sample size (range checked in A2D_Advanced_Channel_Settings)
+	AD1CON1bits.ADON = 0;
+	AD1CON2bits.SMPI = A2D_Channel[scanningQueue[currentQueueElement]].sampleSize;
+	AD1CON1bits.ADON = 1;
 
 	//Perform the beginning of scan action if applicable
 	if(*A2D_Channel[scanningQueue[currentQueueElement]].preFunction != NO_PREFUNCTION)
@@ -258,7 +265,7 @@ int Change_To_Analog(int pin)
 	//Choose the correct pin
 	pin = 1 << pin;
 
-	//Set the pin(s) to digital
+	//Set the pin(s) to Analog
 	AD1PCFG &= ~pin;
 
 	return 1;//Success
@@ -298,6 +305,42 @@ int A2D_Add_To_Scan_Queue(int channel)
 		return 0;
 
 	//So much win!
+	return 1;
+}
+
+int A2D_Advanced_Channel_Settings(int channel, enum RESOLUTION desiredResolutionIncrease, int numberOfAverages, int (*formatPointer)(int), void (*preFunction)(int), void (*postFunction)(int), void (*finishedFunction)(int), int (*averagingStylePointer)(int, int, int), enum A2D_SAMPLE_SIZE sampleSize)
+{
+	//Get the normal setting taken care of first
+	if(A2D_Channel_Settings(channel, desiredResolutionIncrease, numberOfAverages, formatPointer, preFunction, postFunction, finishedFunction) == 0)
+		return 0;//Something failed
+
+	//Take care of the advanced settings locally
+	switch(sampleSize)
+	{
+		case A2D_ONE_SAMPLE:
+		case A2D_TWO_SAMPLES:
+		case A2D_THREE_SAMPLES:
+		case A2D_FOUR_SAMPLES:
+		case A2D_FIVE_SAMPLES:
+		case A2D_SIX_SAMPLES:
+		case A2D_SEVEN_SAMPLES:
+		case A2D_EIGHT_SAMPLES:
+		case A2D_NINE_SAMPLES:
+		case A2D_TEN_SAMPLES:
+		case A2D_ELEVEN_SAMPLES:
+		case A2D_TWELVE_SAMPLES:
+		case A2D_THIRTEEN_SAMPLES:
+		case A2D_FOURTEEN_SAMPLES:
+		case A2D_FIFTEEN_SAMPLES:
+		case A2D_MAX_SAMPLES:
+			A2D_Channel[channel].sampleSize = sampleSize;
+			break;
+		default:
+			return 0;//Out of range
+	}
+	A2D_Channel[channel].averagingStylePointer = averagingStylePointer;
+
+	//Success
 	return 1;
 }
 
@@ -352,6 +395,8 @@ int A2D_Channel_Settings(int channel, enum RESOLUTION desiredResolutionIncrease,
 	A2D_Channel[channel].preFunction = preFunction;
 	A2D_Channel[channel].postFunction = postFunction;
 	A2D_Channel[channel].finishedFunction = finishedFunction;
+	A2D_Channel[channel].averagingStylePointer = NORMAL_AVERAGING;
+	A2D_Channel[channel].sampleSize = A2D_MAX_SAMPLES;
 	
 	//Calculate the DSP and averaging number
 	A2D_Channel[channel].valueForDSP = numberOfAverages;

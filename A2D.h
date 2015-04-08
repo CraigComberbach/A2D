@@ -58,7 +58,7 @@ enum A2D_PIN_DEFINITIONS
 
 //A2D Library
 #define A2D_MAJOR	1
-#define A2D_MINOR	0
+#define A2D_MINOR	1
 #define A2D_PATCH	0
 */
 
@@ -77,6 +77,26 @@ enum A2D_PIN_DEFINITIONS
 #define NO_PREFUNCTION			(void*)0
 #define NO_POSTFUNCTION			(void*)0
 #define NO_FINISHED_FUNCTION	(void*)0
+#define NORMAL_AVERAGING		(void*)0
+enum A2D_SAMPLE_SIZE
+{
+	A2D_ONE_SAMPLE,			//1
+	A2D_TWO_SAMPLES,		//2
+	A2D_THREE_SAMPLES,		//3
+	A2D_FOUR_SAMPLES,		//4
+	A2D_FIVE_SAMPLES,		//5
+	A2D_SIX_SAMPLES,		//6
+	A2D_SEVEN_SAMPLES,		//7
+	A2D_EIGHT_SAMPLES,		//8
+	A2D_NINE_SAMPLES,		//9
+	A2D_TEN_SAMPLES,		//10
+	A2D_ELEVEN_SAMPLES,		//11
+	A2D_TWELVE_SAMPLES,		//12
+	A2D_THIRTEEN_SAMPLES,	//13
+	A2D_FOURTEEN_SAMPLES,	//14
+	A2D_FIFTEEN_SAMPLES,	//15
+	A2D_MAX_SAMPLES,		//16
+};
 
 /*************    Enumeration     ***************/
 enum RESOLUTION
@@ -109,6 +129,8 @@ void A2D_Initialize(void);
  * @return 1 = Channel was updated successfully, 0 = Value out of range, no changes were made
  */
 int A2D_Channel_Settings(int channel, enum RESOLUTION desiredResolutionIncrease, int numberOfAverages, int (*formatPointer)(int), void (*preFunction)(int), void (*postFunction)(int), void (*finishedFunction)(int));
+
+int A2D_Advanced_Channel_Settings(int channel, enum RESOLUTION desiredResolutionIncrease, int numberOfAverages, int (*formatPointer)(int), void (*preFunction)(int), void (*postFunction)(int), void (*finishedFunction)(int), int (*averagingStylePointer)(int, int, int), enum A2D_SAMPLE_SIZE sampleSize);
 
 /**
  * Adds the channel to the scanning queue
