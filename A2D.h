@@ -1,15 +1,26 @@
 /*
- Instructions for adding to a new project:
+Instructions for adding to a new project:
 Add the code with the header "Add to config file header" to the config.h file, and the code labeled "Add to config file"
 to config.c. The analog pin definitions (A2D_PIN_DEFINITIONS) that are placed into config.h need to line up incrementally based
 on the analog channel (eg AN5 needs to be enumerated to 5).
 
 The initiliaze routine needs to be run once on startup. After that the you are required to run both A2D_Channel_Settings() and
-A2D_Add_To_Scan_Queue() before the A2D will work. Calling the A2D_Add_To_Scan_Queue() function several times adds multiple
+then A2D_Add_To_Scan_Queue() before the A2D will work. Calling the A2D_Add_To_Scan_Queue() function several times adds multiple
 instances of the channel to the queue. This is a way to get a quicker update rate on a channel if there are several other
-channels. Running A2D_Channel_Settings() once a conversion is under way will reset the channel to the specified new settings and
-restart the conversion process. It would typically only be called multiple times if a different resolution was temporarily
+channels. Running A2D_Channel_Settings() once a conversion is under way will reset the channel to the specified new settings
+and restart the conversion process. It would typically only be called multiple times if a different resolution was temporarily
 required, or if the format/pre/post/finished functions needed to be changed for use in different configurations.
+
+The A2D_Advanced_Channel_Settings() function takes extra optional arguments. Use it instead of A2D_Channel_Setting(). Calling
+A2D_Channel_Setting() will return all the extra optional settings to the default setting. The optional features include a way
+to call a function before the A2D scan burst begins, allowing switched pins (ie thermistor power) to be turned on, or set a flag,
+or... Another feature allows you to call a function when the busrt scan is finished, thus allowing you to automagically turn off
+the switched pin used earlier, or clear the flag. Yet another feature allows a function to be called when the scan is complete and
+the value has been properly averaged and formated, useful if some code needs to run as soon as a new value is available (PID
+routines for examples). There is a feature to allow custom averaging to take place, this will intercept the A2D burst before it
+is added to the sample sum (prior to averaging and formatting, which can be useful for looking at individual samples (ie True Random
+Number Generator). The last feature allows a custom burst size, which works really well with the CTMU, as only the first sample is
+valid, each successive sample will damage the result.
 
 Reading the current value is done through A2D_Value(). Note: This value is not the raw A2D value, rather it is already formatted
 and at the correct resolution as specificied according to the latest calling of A2D_Channel_Settings();
@@ -20,15 +31,15 @@ Calling the routine before a conversion is done will not interrupt the current c
 The markup above each function will pop-up as a helpful reminder of the arguments each function will take, as well as what value
 is returned, and what the function will do.
 
-Calculating how much time an full update will take to complete is done via the following formulae:
- * (4^b*s*q*t)/(16*r)
+Calculating how much time a full update will take to complete is done via the following formulae:
+ * (4^r*s*n*t)/(b*q)
  * Where:
- * b = Bits of resolution increase from 10-bit (0 for 10 bit, 1 for 11 bit, etc)
+ * r = Bits of resolution increase from 10-bit (0 for 10 bit, 1 for 11 bit, etc)
  * s = Number of samples at the requested resolution for an updated value
- * q = Number of channels in the queue (NOTE: Includes repeated channels)
+ * n = Number of channels in the queue (NOTE: Includes repeated channels)
  * t = The time interval between calling the A2D_Routine (Eg. Time of main loop)
- * 16 = Constant, it represents the number of samples per scan
- * r = Number of times a channel appears in the queue (Can be more than once for repeated channels)
+ * b = The number of samples per scan
+ * q = Number of times a channel appears in the queue (Can be more than once for repeated channels)
 */
 
 #ifndef A2D_H
@@ -118,19 +129,26 @@ enum RESOLUTION
 void A2D_Initialize(void);
 
 /**
- * Sets up the fundamental settings of the scan, allowing you to change the number of samples and increasing resolution, in addition to adding custom formating and inserting function before/after a scan as well as when a channel is finished scanning
- * @param channel The A2D channel that is to be scanned, these are enumerated in the controller config file
+ * Sets up the fundamental settings of the scan, allowing you to change the number of samples and increasing resolution, in addition to adding custom formating
+ * @param channel The A2D channel that is to be scanned, these are enumerated in the project config file
  * @param desiredResolution The desired additional bits of resolution (between 0(10-bit) and 6(16-bit)), you can use enum RESOLUTION in this header file to simplify
- * @param numberOfAverages The number of desired "readings" to be averaged (This can be different than the number of samples taken if additional resolution is selected). This number must be 16 or greater, must not be 65536 or bigger and must be a multiple of 16.
+ * @param numberOfAverages The number of desired "readings" to be averaged (This will be different than the number of samples taken if additional resolution is selected). This number must be 16 or greater, must not be 65536 or bigger and must be a multiple of 16.
+ * @param formatPointer Function pointer that will format the raw A2D values, the function must accept an integer representing the raw A2D value, it should also return the formatted value as an integer
+ * @return 1 = Channel was updated successfully, 0 = Value out of range, no changes were made
+ */
+
+/**
+ * Sets up the fundamental settings of the scan, allowing you to change the number of samples and increasing resolution, in addition to adding custom formating and inserting function before/after a scan as well as when a channel is finished scanning, as well as detailing how averaging is done, and how many samples are taken in a burst
+ * @param channel The A2D channel that is to be scanned, these are enumerated in the project config file
+ * @param desiredResolution The desired additional bits of resolution (between 0(10-bit) and 6(16-bit)), you can use enum RESOLUTION in this header file to simplify
+ * @param numberOfAverages The number of desired "readings" to be averaged (This will be different than the number of samples taken if additional resolution is selected). This number must be 16 or greater, must not be 65536 or bigger and must be a multiple of 16.
  * @param formatPointer Function pointer that will format the raw A2D values, the function must accept an integer representing the raw A2D value, it should also return the formatted value as an integer
  * @param preFunction Function pointer that will run just as the channel is starting to be scanned (eg switched pin turning on), the function must accept an integer indicating A2D channel, it should not return a value
  * @param postFunction Function pointer that will run just as the channel is finished being scanned (eg switched pin turning off), the function must accept an integer indicating A2D channel, it should not return a value
  * @param finishedFunction Function pointer that will run when the sampling/averaging is completed and a new value is ready (eg functions that need to run as soon as a sample is ready), the function must accept an integer indicating A2D channel, it should not return a value
+ * @param sampleSize This value is used to specify how many samples are to be taken in a single burst. This is useful if you only want a limited sample size, some possible uses are with the CTMU module (only the first reading is valid). The number is 0 centered (16-samples should be a value of 15), because of this the enum in the A2D.h header file is provided to simplify this
  * @return 1 = Channel was updated successfully, 0 = Value out of range, no changes were made
  */
-int A2D_Channel_Settings(int channel, enum RESOLUTION desiredResolutionIncrease, int numberOfAverages, int (*formatPointer)(int), void (*preFunction)(int), void (*postFunction)(int), void (*finishedFunction)(int));
-
-int A2D_Advanced_Channel_Settings(int channel, enum RESOLUTION desiredResolutionIncrease, int numberOfAverages, int (*formatPointer)(int), void (*preFunction)(int), void (*postFunction)(int), void (*finishedFunction)(int), int (*averagingStylePointer)(int, volatile unsigned int *, int), enum A2D_SAMPLE_SIZE sampleSize);
 
 /**
  * Adds the channel to the scanning queue
