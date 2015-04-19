@@ -2,8 +2,13 @@
 Target Hardware:		PIC24F
 Chip resources used:	A2D Module & Pins setup as analog inputs
 Purpose:				Scan A2D, perform DSP to increase resolution, and format accordingly
+						It also allows for arbitrary functionality through function pointers to further extend the ADCs capabilities
 
 Version History:
+v1.1.0	2015-04-19  Craig Comberbach
+	Compiler: XC16 v1.11	IDE: MPLABx 2.20	Tool: ICD3	Computer: Intel Core2 Quad CPU 2.40 GHz, 5 GB RAM, Windows 7 64 bit Home Premium SP1
+	Added fine grained sampling - Allows the number of samples to be changed when the burst sampling occurs. Allows from 1-16 samples, default is 16
+	Added sample inspection - Allows individual samples to be inspected after a burst completes. This allows manipulation and inspection of the samples to occur if necessary
 v1.0.0	2015-01-10  Craig Comberbach
 	Compiler: XC16 v1.11	IDE: MPLABx 2.20	Tool: ICD3	Computer: Intel Core2 Quad CPU 2.40 GHz, 5 GB RAM, Windows 7 64 bit Home Premium SP1
 	Added full scanning functionality
@@ -46,18 +51,18 @@ volatile char scanIsComplete;
 volatile char currentQueueElement;
 struct A2D_Channel_Attributes
 {
-	unsigned char bitsOfResolutionIncrease;	//The number of bit of increased resolution (Default is 0 which is 10 bits)
-	unsigned int samplesRequired;			//The number of samples required to initate an averaging event (includes number of finished samples to make a final averaged sample)
-	unsigned int valueForDSP;				//Used as part of calculation to get the current value, includes what is required for resolution increasing as well as averaging
-	unsigned int samplesTaken;				//Current number of samples, in multiples of 16 (because samples are taken in bursts of 16)
-	int value;								//The most current averaged value, includes resolution increase if used
-	int (*formatPointer)(int);				//Used to specify a function that handles the formating of the averaged value
-	void (*preFunction)(int);				//Used to specify a function that activates when a channel starts being scanned (eg for setting a switched pin)
-	void (*postFunction)(int);				//Used to specify a function that activates when a channel stops being scanned (eg for resetting a switched pin)
-	void (*finishedFunction)(int);			//Used to specify a function that activates when a channel finishes being scanned and a new value is created (eg For setting flags for functions that need to run as soon as a value is determined)
-	int (*averagingStyle)(int, volatile unsigned int *, int);	//Allows individual inspection of samples before they get summed
-	enum A2D_SAMPLE_SIZE sampleSize;				//Used to indicate how many samples should be taken with each pass
-	unsigned long sumOfSamples;				//Sum of all the A2D samples before it undergoes DSP/Averaging
+	unsigned char bitsOfResolutionIncrease;						//The number of bit of increased resolution (Default is 0 which is 10 bits)
+	unsigned int samplesRequired;								//The number of samples required to initate an averaging event (includes number of finished samples to make a final averaged sample)
+	unsigned int valueForDSP;									//Used as part of calculation to get the current value, includes what is required for resolution increasing as well as averaging
+	unsigned int samplesTaken;									//Current number of samples, in multiples of 16 (because samples are taken in bursts of 16)
+	int value;													//The most current averaged value, includes resolution increase if used
+	int (*formatFunction)(int);									//Used to specify a function that handles the formating of the averaged value
+	void (*preFunction)(int);									//Used to specify a function that activates when a channel starts being scanned (eg for setting a switched pin)
+	void (*postFunction)(int);									//Used to specify a function that activates when a channel stops being scanned (eg for resetting a switched pin)
+	void (*finishedFunction)(int);								//Used to specify a function that activates when a channel finishes being scanned and a new value is created (eg For setting flags for functions that need to run as soon as a value is determined)
+	int (*inspectionFunction)(int, volatile unsigned int *, int);	//Allows individual inspection of samples before they get summed
+	enum A2D_SAMPLE_SIZE sampleSize;							//Used to indicate how many samples should be taken with each pass
+	unsigned long sumOfSamples;									//Sum of all the A2D samples before it undergoes DSP/Averaging
 } A2D_Channel[NUMBER_OF_CHANNELS];
 
 /*************Function  Prototypes***************/
@@ -78,14 +83,14 @@ void A2D_Routine(void)
 		scanIsComplete = 0;
 
 		//Add all n of the samples into the raw variable
-		if(*A2D_Channel[scanningQueue[currentQueueElement]].averagingStyle == NORMAL_AVERAGING)
+		if(*A2D_Channel[scanningQueue[currentQueueElement]].inspectionFunction == NORMAL_AVERAGING)
 		{
 			for(buffer = 0; buffer <= (A2D_Channel[scanningQueue[currentQueueElement]].sampleSize); buffer++)
 				A2D_Channel[scanningQueue[currentQueueElement]].sumOfSamples += *(&ADC1BUF0 + buffer);
 		}
 		else //Or let an external function take care of it
 		{
-			A2D_Channel[scanningQueue[currentQueueElement]].sumOfSamples += A2D_Channel[scanningQueue[currentQueueElement]].averagingStyle(scanningQueue[currentQueueElement], &ADC1BUF0, A2D_Channel[scanningQueue[currentQueueElement]].sampleSize);
+			A2D_Channel[scanningQueue[currentQueueElement]].sumOfSamples += A2D_Channel[scanningQueue[currentQueueElement]].inspectionFunction(scanningQueue[currentQueueElement], &ADC1BUF0, A2D_Channel[scanningQueue[currentQueueElement]].sampleSize);
 		}
 
 		//Increment the number of samples read in (we just took in n samples in a burst, hence the sampleSize variable)
@@ -98,10 +103,10 @@ void A2D_Routine(void)
 			A2D_Channel[scanningQueue[currentQueueElement]].sumOfSamples /= A2D_Channel[scanningQueue[currentQueueElement]].valueForDSP; //Create average DSP value
 
 			//Apply formats externaly if required
-			if(*A2D_Channel[scanningQueue[currentQueueElement]].formatPointer == NO_FORMATING)
+			if(*A2D_Channel[scanningQueue[currentQueueElement]].formatFunction == NO_FORMATING)
 				A2D_Channel[scanningQueue[currentQueueElement]].value = (int)A2D_Channel[scanningQueue[currentQueueElement]].sumOfSamples;
 			else
-				A2D_Channel[scanningQueue[currentQueueElement]].value = A2D_Channel[scanningQueue[currentQueueElement]].formatPointer((int)A2D_Channel[scanningQueue[currentQueueElement]].sumOfSamples);
+				A2D_Channel[scanningQueue[currentQueueElement]].value = A2D_Channel[scanningQueue[currentQueueElement]].formatFunction((int)A2D_Channel[scanningQueue[currentQueueElement]].sumOfSamples);
 
 			//House keeping - Reset the counter and storage variable
 			A2D_Channel[scanningQueue[currentQueueElement]].samplesTaken = 0;
@@ -315,7 +320,7 @@ int A2D_Add_To_Scan_Queue(int channel)
 	return 1;
 }
 
-int A2D_Advanced_Channel_Settings(int channel, enum RESOLUTION desiredResolutionIncrease, int numberOfAverages, int (*formatPointer)(int), void (*preFunction)(int), void (*postFunction)(int), void (*finishedFunction)(int), int (*averagingStyle)(int, volatile unsigned int *, int), enum A2D_SAMPLE_SIZE sampleSize)
+int A2D_Advanced_Channel_Settings(int channel, enum RESOLUTION desiredResolutionIncrease, int numberOfAverages, int (*formatPointer)(int), void (*preFunction)(int), void (*postFunction)(int), void (*finishedFunction)(int), int (*inspectionFunction)(int, volatile unsigned int *, int), enum A2D_SAMPLE_SIZE sampleSize)
 {
 	//Get the normal setting taken care of first
 	if(A2D_Channel_Settings(channel, desiredResolutionIncrease, numberOfAverages, formatPointer) == 0)
@@ -346,7 +351,7 @@ int A2D_Advanced_Channel_Settings(int channel, enum RESOLUTION desiredResolution
 			return 0;//Out of range
 	}
 
-	A2D_Channel[channel].averagingStyle = averagingStyle;
+	A2D_Channel[channel].inspectionFunction = inspectionFunction;
 	A2D_Channel[channel].preFunction = preFunction;
 	A2D_Channel[channel].postFunction = postFunction;
 	A2D_Channel[channel].finishedFunction = finishedFunction;
@@ -355,7 +360,7 @@ int A2D_Advanced_Channel_Settings(int channel, enum RESOLUTION desiredResolution
 	return 1;
 }
 
-int A2D_Channel_Settings(int channel, enum RESOLUTION desiredResolutionIncrease, int numberOfAverages, int (*formatPointer)(int))
+int A2D_Channel_Settings(int channel, enum RESOLUTION desiredResolutionIncrease, int numberOfAverages, int (*formatFunction)(int))
 {
 	unsigned long samplesRequired;
 
@@ -402,11 +407,11 @@ int A2D_Channel_Settings(int channel, enum RESOLUTION desiredResolutionIncrease,
 	A2D_Channel[channel].bitsOfResolutionIncrease = desiredResolutionIncrease;
 	A2D_Channel[channel].samplesRequired = (int)samplesRequired;
 	A2D_Channel[channel].samplesTaken = 0;
-	A2D_Channel[channel].formatPointer = formatPointer;
+	A2D_Channel[channel].formatFunction = formatFunction;
 	A2D_Channel[channel].preFunction = NO_PREFUNCTION;
 	A2D_Channel[channel].postFunction = NO_POSTFUNCTION;
 	A2D_Channel[channel].finishedFunction = NO_FINISHED_FUNCTION;
-	A2D_Channel[channel].averagingStyle = NORMAL_AVERAGING;
+	A2D_Channel[channel].inspectionFunction = NORMAL_AVERAGING;
 	A2D_Channel[channel].sampleSize = A2D_MAX_SAMPLES;
 	
 	//Calculate the DSP and averaging number
