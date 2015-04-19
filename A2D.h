@@ -136,6 +136,7 @@ void A2D_Initialize(void);
  * @param formatPointer Function pointer that will format the raw A2D values, the function must accept an integer representing the raw A2D value, it should also return the formatted value as an integer
  * @return 1 = Channel was updated successfully, 0 = Value out of range, no changes were made
  */
+int A2D_Channel_Settings(int channel, enum RESOLUTION desiredResolutionIncrease, int numberOfAverages, int (*formatPointer)(int));
 
 /**
  * Sets up the fundamental settings of the scan, allowing you to change the number of samples and increasing resolution, in addition to adding custom formating and inserting function before/after a scan as well as when a channel is finished scanning, as well as detailing how averaging is done, and how many samples are taken in a burst
@@ -146,9 +147,11 @@ void A2D_Initialize(void);
  * @param preFunction Function pointer that will run just as the channel is starting to be scanned (eg switched pin turning on), the function must accept an integer indicating A2D channel, it should not return a value
  * @param postFunction Function pointer that will run just as the channel is finished being scanned (eg switched pin turning off), the function must accept an integer indicating A2D channel, it should not return a value
  * @param finishedFunction Function pointer that will run when the sampling/averaging is completed and a new value is ready (eg functions that need to run as soon as a sample is ready), the function must accept an integer indicating A2D channel, it should not return a value
+ * @param averagingStyle Allows the interception of the raw A2D values before they are summed and averaged. Only allows access to the current buffer (max 16 intergers). Useful for cherry picking values, or for example generating truly random numbers. The function should accept an integer (A2D channel, volatile unsigned int (pointer to A2D buffer), another integer (size of buffer, typically 16), and must return an integer
  * @param sampleSize This value is used to specify how many samples are to be taken in a single burst. This is useful if you only want a limited sample size, some possible uses are with the CTMU module (only the first reading is valid). The number is 0 centered (16-samples should be a value of 15), because of this the enum in the A2D.h header file is provided to simplify this
  * @return 1 = Channel was updated successfully, 0 = Value out of range, no changes were made
  */
+ int A2D_Advanced_Channel_Settings(int channel, enum RESOLUTION desiredResolutionIncrease, int numberOfAverages, int (*formatPointer)(int), void (*preFunction)(int), void (*postFunction)(int), void (*finishedFunction)(int), int (*averagingStyle)(int, volatile unsigned int *, int), enum A2D_SAMPLE_SIZE sampleSize);
 
 /**
  * Adds the channel to the scanning queue
