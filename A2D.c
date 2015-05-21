@@ -137,7 +137,7 @@ void A2D_Routine(void)
 		A2D_Channel[scanningQueue[currentQueueElement]].preFunction(scanningQueue[currentQueueElement]);
 
 	//(Re)start the Automatic scanning of the Analog ports
-	START_SCAN;
+//	START_SCAN;
 
 	return;
 }
@@ -218,7 +218,7 @@ void A2D_Initialize(void)
 //	AD1CON1bits.DONE is Read Only
 //	AD1CON1bits.SAMP is Read Only
 	AD1CON1bits.ASAM = 0;		//0 = Sampling begins when SAMP bit is set
-	AD1CON1bits.SSRC = 0b111;	//111 = Internal counter ends sampling and starts conversion (auto-convert)
+	AD1CON1bits.SSRC = 0b000;	//111 = Internal counter ends sampling and starts conversion (auto-convert)
 	AD1CON1bits.FORM = 0;		//0 = Integer (0000 00dd dddd dddd)
 	AD1CON1bits.ADSIDL = 1;		//1 = Discontinue module operation when device enters Idle mode
 	AD1CON1bits.ADON = 1;		//1 = A/D Converter module is operating
