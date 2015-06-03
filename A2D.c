@@ -137,7 +137,7 @@ void A2D_Routine(void)
 		A2D_Channel[scanningQueue[currentQueueElement]].preFunction(scanningQueue[currentQueueElement]);
 
 	//(Re)start the Automatic scanning of the Analog ports
-//	START_SCAN;
+	START_SCAN;
 
 	return;
 }
