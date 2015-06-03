@@ -195,9 +195,9 @@ void A2D_Initialize(void)
 	AD1PCFG = ~0;					//1 = Pin for corresponding analog channel is configured in Digital mode; I/O port read is enabled
 
 	//A/D Input Select Register
-	AD1CHSbits.CH0SA = 0b0111;		//0111 = AVDD
+	AD1CHSbits.CH0SA = 0b0000;		//0000 = AVDD
 	AD1CHSbits.CH0NA = 0;			//0 = Channel 0 negative input is VR-
-	AD1CHSbits.CH0SB = 0b0111;		//0111 = AVDD
+	AD1CHSbits.CH0SB = 0b0000;		//0000 = AVDD
 	AD1CHSbits.CH0NB = 0;			//0 = Channel 0 negative input is VR-
 
 	//A/D Control Register 3
@@ -226,20 +226,20 @@ void A2D_Initialize(void)
 	return;
 }
 
-int Add_To_Scan(int pin)
+int Add_To_Scan(int channel)
 {
 	//Range checking
-	if(pin >= NUMBER_OF_CHANNELS)
+	if(channel >= NUMBER_OF_CHANNELS)
 		return 0;//Failure
 
 	//Choose the correct pin
-	pin = 1 << pin;
+	channel = 1 << channel;
 
 	//Turn off the module, changing a CSSL bit with it on can lead to issues
 	AD1CON1bits.ADON = 0;
 
 	//Set the pin to be scanned
-	AD1CSSL |= pin;
+	AD1CSSL |= channel;
 
 	//Turn the module back on
 	AD1CON1bits.ADON = 1;
@@ -247,20 +247,20 @@ int Add_To_Scan(int pin)
 	return 1;//Success
 }
 
-int Remove_From_Scan(int pin)
+int Remove_From_Scan(int channel)
 {
 	//Range checking
-	if(pin >= NUMBER_OF_CHANNELS)
+	if(channel >= NUMBER_OF_CHANNELS)
 		return 0;//Failure
 
 	//Choose the correct pin
-	pin = 1 << pin;
+	channel = 1 << channel;
 
 	//Turn off the module, changing a CSSL bit with it on can lead to issues
 	AD1CON1bits.ADON = 0;
 
 	//Remove the pin from being scanned
-	AD1CSSL &= ~pin;
+	AD1CSSL &= ~channel;
 
 	//Turn the module back on
 	AD1CON1bits.ADON = 1;
@@ -268,32 +268,32 @@ int Remove_From_Scan(int pin)
 	return 1;//Success
 }
 
-int Change_To_Analog(int pin)
+int Change_To_Analog(int channel)
 {
 	//Range checking
-	if(pin >= NUMBER_OF_CHANNELS)
+	if(channel >= NUMBER_OF_CHANNELS)
 		return 0;//Failure
 
 	//Choose the correct pin
-	pin = 1 << pin;
+	channel = 1 << channel;
 
 	//Set the pin(s) to Analog
-	AD1PCFG &= ~pin;
+	AD1PCFG &= ~channel;
 
 	return 1;//Success
 }
 
-int Change_To_Digital(int pin)
+int Change_To_Digital(int channel)
 {
 	//Range checking
-	if(pin >= NUMBER_OF_CHANNELS)
+	if(channel >= NUMBER_OF_CHANNELS)
 		return 0;//Failure
 
 	//Choose the correct pin
-	pin = 1 << pin;
+	channel = 1 << channel;
 
 	//Set the pin(s) to digital
-	AD1PCFG |= pin;
+	AD1PCFG |= channel;
 
 	return 1;//Success
 }
