@@ -1,3 +1,5 @@
+#ifndef A2D_H
+#define A2D_H
 /*
 Instructions for adding to a new project:
 Add the code with the header "Add to config file header" to the config.h file, and the code labeled "Add to config file"
@@ -41,9 +43,6 @@ Calculating how much time a full update will take to complete is done via the fo
  * b = The number of samples per scan
  * q = Number of times a channel appears in the queue (Can be more than once for repeated channels)
 */
-
-#ifndef A2D_H
-#define A2D_H
 
 /***********Add to config file header************/
 /*
