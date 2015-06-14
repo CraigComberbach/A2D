@@ -64,6 +64,7 @@ enum A2D_PIN_DEFINITIONS
 	A2D_A13 = 13,	//A13
 	A2D_A14 = 14,	//A14
 	A2D_A15 = 15,	//A15
+	NUMBER_OF_A2D_PINS
 };
 
 //A2D Library
